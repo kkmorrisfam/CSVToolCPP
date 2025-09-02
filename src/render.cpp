@@ -1,4 +1,9 @@
 #include <iostream>
+#include <vector>
+#include <cstdint>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 #include <fmt/format.h>
 #include <imgui.h>
@@ -137,6 +142,26 @@ void WindowClass::DrawSizeButtons()
 
 void WindowClass::DrawIoButtons()
 {
+    if (ImGui::Button("Save"))
+        ImGui::OpenPopup("Save File");
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Load"))
+        ImGui::OpenPopup("Load File");
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Clear"))
+    {
+        data.clear();
+        numRows = 0;
+        numCols = 0;
+
+    }
+
+    DrawSavePopup();
+    DrawLoadPopup();
 
 }
 
@@ -231,11 +256,33 @@ void WindowClass::DrawValuePopup(const int row, const int col)
 
 void WindowClass::SaveToCsvFile(std::string_view filename)
 {
+    auto out = std::ifstream(filename.data());
 
+    if (!out || !out.is_open())
+        return;
+
+    for (std::int32_t row = 0; row < numRows; ++row)
+    {
+        for (std::int32_t col = 0; col < numCols; ++col)
+        {
+            out << data[row][col];
+            out << ',';
+        }
+        out << '\n';
+    }
+    out.close();
 }
 
 void WindowClass::LoadFromCsvFile(std::string_view filename)
 {
+    auto in = std::ofstream(filename.data());
+
+    if (!in || !in.is_open())
+        return;
+    data.clear();
+
+    auto line = std::string{};
+    in.close();
 
 }
 
