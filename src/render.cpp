@@ -183,19 +183,49 @@ void WindowClass::DrawTable()
 
     ImGui::BeginTable("Table", numCols, table_flags);
 
+    //set up the table header; iterates from 0 to numCols -1
+    for (std::int32_t col = 0; col < numCols; ++col)
+    {
+        //create a column name
+        //col = 0 -> 'A' (65)
+        //col = 1 -> 'B' (66)
+        //col = 2 -> 'C' (67), etc.
+        // fmt::format() converts the char into a string
+        const auto col_name = fmt::format("{}", 'A' + col);
+
+        ImGui::TableSetupColumn(col_name.data(), ImGuiTableColumnFlags_WidthFixed,
+                                1280.0F / static_cast<float>(numCols));
+    }
+
+    // draw header row
+    ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+    for (std::int32_t col = 0; col < numCols; ++col)
+    {
+        PlotCellValue("%c", 'A' + col);
+    }
+
+    //draw columns & rows
     for (std::int32_t row = 0; row < numRows; ++row)
     {
         for (std::int32_t col = 0; col < numCols; ++col)
         {
             PlotCellValue("%f", data[row][col]);
+            if(ImGui::IsItemClicked())
+            {
+                ImGui::OpenPopup("Change Value");
+                row_clicked = row;
+                col_clicked = col;
+            }
+            else if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Cell: (%d, %d)", row, col);
+            }
         }
         ImGui::TableNextRow();
     }
 
-    //removing a row
-    //adding a column
-    //removing a column
-
+    DrawValuePopup(row_clicked, col_clicked);
+    
     ImGui::EndTable();
 }
 
@@ -256,8 +286,10 @@ void WindowClass::DrawLoadPopup()
 void WindowClass::DrawValuePopup(const int row, const int col)
 {
     const auto esc_pressed =
-        ImGui::IsKeyPressed(ImGuiKey_Escape);    SetPopupLayout();
-    if (ImGui::BeginPopupModal("Save File", nullptr, popUpFlags))
+        ImGui::IsKeyPressed(ImGuiKey_Escape);
+
+    SetPopupLayout();
+    if (ImGui::BeginPopupModal("Change Value", nullptr, popUpFlags))
     {
         ImGui::InputText("Filename", filenameBuffer, sizeof(filenameBuffer));
 
