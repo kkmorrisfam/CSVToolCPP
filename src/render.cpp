@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <imgui.h>
@@ -94,6 +95,7 @@ void WindowClass::DrawSizeButtons()
      }
 
      //casting to avoid compiler warnings
+     //use int32_t for consistence across platforms
      const auto num_rows_i32 = static_cast<std::int32_t>(data.size());
      if (user_added_rows)
      {
@@ -113,6 +115,7 @@ void WindowClass::DrawSizeButtons()
      else if (user_added_cols)
      {
         //iterate over all rows
+        //use int32_t for consistence across platforms
         for (std::int32_t row = 0; row < numRows; ++row)
         {
             //the number of columns we have before user edits columns
@@ -126,6 +129,7 @@ void WindowClass::DrawSizeButtons()
      else if (user_dropped_cols)
      {
         //iterate over all rows
+        //use int32_t for consistence across platforms
         for (std::int32_t row = 0; row < numRows; ++row)
         {
             //the number of columns we have before user edits columns
@@ -168,9 +172,31 @@ void WindowClass::DrawIoButtons()
 void WindowClass::DrawTable()
 {
     //adding a row
+    constexpr static auto table_flags =
+        ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuter;
+
+    static auto row_clicked = 0;
+    static auto col_clicked = 0;
+
+    if(numCols == 0)
+        return;
+
+    ImGui::BeginTable("Table", numCols, table_flags);
+
+    for (std::int32_t row = 0; row < numRows; ++row)
+    {
+        for (std::int32_t col = 0; col < numCols; ++col)
+        {
+            PlotCellValue("%f", data[row][col]);
+        }
+        ImGui::TableNextRow();
+    }
+
     //removing a row
     //adding a column
     //removing a column
+
+    ImGui::EndTable();
 }
 
 void WindowClass::DrawSavePopup()
@@ -230,9 +256,7 @@ void WindowClass::DrawLoadPopup()
 void WindowClass::DrawValuePopup(const int row, const int col)
 {
     const auto esc_pressed =
-        ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape));
-
-    SetPopupLayout();
+        ImGui::IsKeyPressed(ImGuiKey_Escape);    SetPopupLayout();
     if (ImGui::BeginPopupModal("Save File", nullptr, popUpFlags))
     {
         ImGui::InputText("Filename", filenameBuffer, sizeof(filenameBuffer));
@@ -254,13 +278,17 @@ void WindowClass::DrawValuePopup(const int row, const int col)
     }
 }
 
+//std::string_view is pointer with length of string
 void WindowClass::SaveToCsvFile(std::string_view filename)
 {
-    auto out = std::ifstream(filename.data());
+    //creates file output stream from passed in value
+    auto out = std::ofstream(filename.data());
 
+    //if open failed
     if (!out || !out.is_open())
         return;
 
+    //writing data into file
     for (std::int32_t row = 0; row < numRows; ++row)
     {
         for (std::int32_t col = 0; col < numCols; ++col)
@@ -275,20 +303,46 @@ void WindowClass::SaveToCsvFile(std::string_view filename)
 
 void WindowClass::LoadFromCsvFile(std::string_view filename)
 {
-    auto in = std::ofstream(filename.data());
+    auto in = std::ifstream(filename.data());
 
     if (!in || !in.is_open())
         return;
     data.clear();
 
     auto line = std::string{};
+    auto num_rows = 0U;
+
+    while (std::getline(in, line))
+    {
+        auto ss = std::istringstream(line);
+        auto row = std::vector<float>{};
+        auto value = std::string{};
+
+        while (std::getline(ss, value, ','))
+        {
+            row.push_back(std::stof(value));
+        }
+
+        data.push_back(row);
+
+        ++num_rows;
+    }
+
     in.close();
+
+    numRows = num_rows;
+    if (numRows > 0U)
+        numCols = static_cast<std::int32_t>(data[0].size());
+    else
+        numCols = 0;
 
 }
 
 template <typename T>
 void WindowClass::PlotCellValue(std::string_view formatter, const T value)
 {
+    ImGui::TableNextColumn();  //go to the next collumn
+    ImGui::Text(formatter.data(), value);
 
 }
 
@@ -297,7 +351,6 @@ void WindowClass::SetPopupLayout()
 
     ImGui::SetNextWindowSize(popUpSize);
     ImGui::SetNextWindowPos(popUpPos);
-
 }
 
 void render(WindowClass &window_obj)
