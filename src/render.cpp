@@ -225,7 +225,7 @@ void WindowClass::DrawTable()
     }
 
     DrawValuePopup(row_clicked, col_clicked);
-    
+
     ImGui::EndTable();
 }
 
@@ -285,17 +285,23 @@ void WindowClass::DrawLoadPopup()
 
 void WindowClass::DrawValuePopup(const int row, const int col)
 {
+    //create buffer (char array) variable that ImGui:InputText requires (not std::string)
+    //used to store user input
+    static char buffer[64] = {'\0'};  //char array initialized to all 0's -> empty string
     const auto esc_pressed =
         ImGui::IsKeyPressed(ImGuiKey_Escape);
 
     SetPopupLayout();
     if (ImGui::BeginPopupModal("Change Value", nullptr, popUpFlags))
     {
-        ImGui::InputText("Filename", filenameBuffer, sizeof(filenameBuffer));
+        //creates a unique invisible label based on row/col coordinates
+        const auto label = fmt::format("##{}_{}", row, col);
+        ImGui::InputText(label.data(), buffer, sizeof(buffer));
 
-        if (ImGui::Button("Save", popUpButtonSize))
+        if (ImGui::Button("Update", popUpButtonSize))
         {
-            SaveToCsvFile(filenameBuffer);
+            data[row][col] = std::stof(buffer); //buffer should be convertable to float
+
             ImGui::CloseCurrentPopup();
         }
 
