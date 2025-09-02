@@ -56,7 +56,7 @@ void WindowClass::DrawSizeButtons()
         user_added_rows = slider_value_rows > numRows ? true : false;
         user_dropped_rows = !user_added_rows;
 
-        numRows = user_added_rows;
+        numRows = slider_value_rows;
      }
      ImGui::SameLine();
      if (ImGui::Button("Add Row") && numRows < maxNumRows)
@@ -79,7 +79,7 @@ void WindowClass::DrawSizeButtons()
         user_added_cols = slider_value_cols > numCols ? true : false;
         user_dropped_cols = !user_added_cols;
 
-        numCols = user_added_cols;
+        numCols = slider_value_cols;
      }
      ImGui::SameLine();
      if (ImGui::Button("Add Col") && numCols < maxNumCols)
